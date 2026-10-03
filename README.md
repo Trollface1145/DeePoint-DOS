@@ -72,5 +72,8 @@ DeePoint DOS 是一个面向 16 位实模式的轻量级操作系统，由一位
 ##  开源协议
 本项目基于 [MIT License](LICENSE) 开源。欢迎对底层感兴趣的朋友提交 Issue 或 Pull Request！
 
+## 鸣谢
+Deep Seek
+
 ---
 *“All_Perfect” —— 12岁，手搓 MBR，点亮屏幕，编写操作系统。*

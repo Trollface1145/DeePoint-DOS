@@ -117,14 +117,21 @@ main_loop:
     repe cmpsb
     je .cmd_help
 
-    ; 7. echo (前缀，长度 5，带空格)
+    ; 7. beep (长度 4) - 彩蛋！
+    mov si, cmd_beep
+    mov di, buffer
+    mov cx, 4
+    repe cmpsb
+    je .cmd_beep
+
+    ; 8. echo (前缀，长度 5，带空格)
     mov si, cmd_echo
     mov di, buffer
     mov cx, 5
     repe cmpsb
     je .cmd_echo
 
-    ; 8. deepoint -v (长度 11)
+    ; 9. deepoint -v (长度 11)
     mov si, cmd_v
     mov di, buffer
     mov cx, 11
@@ -154,20 +161,47 @@ main_loop:
     call print_str
     jmp main_loop
 
+.cmd_beep:
+    ; 1. 设置 PIT 定时器 2 的频率（约 896 Hz）
+    mov al, 0xB6      ; 0xB6 = 定时器2, LSB/MSB, 模式3（方波）
+    out 0x43, al
+    mov ax, 0x0533    ; 1193180 Hz / 896 Hz ≈ 0x0533 (1331)
+    out 0x42, al      ; 发送频率低8位
+    mov al, ah
+    out 0x42, al      ; 发送频率高8位
+
+    ; 2. 打开扬声器开关
+    in al, 0x61
+    or al, 0x03
+    out 0x61, al
+
+    ; 3. 精准延时 5 秒 (利用 BIOS 中断 int 15h, AH=86h)
+    ; 5 秒 = 5,000,000 微秒 = 0x4C4B40
+    ; CX 存放高 16 位, DX 存放低 16 位
+    mov cx, 0x004C    ; 高位
+    mov dx, 0x4B40    ; 低位
+    mov ah, 0x86
+    int 0x15
+
+    ; 4. 关闭扬声器
+    in al, 0x61
+    and al, 0xFC
+    out 0x61, al
+
+    mov si, msg_beep
+    call print_str
+    jmp main_loop
+
 .cmd_echo:
-    ; DI 指向 "echo " 之后的位置
-    ; 检查 -n 前缀参数
     cmp byte [di], '-'
     jne .echo_regular
     cmp byte [di+1], 'n'
     jne .echo_regular
     add di, 2
-    ; 跳过可能存在的空格
     cmp byte [di], ' '
     jne .echo_no_space
     inc di
 .echo_no_space:
-    ; 不换行打印
     mov si, di
     call print_str
     jmp main_loop
@@ -208,11 +242,10 @@ main_loop:
 .cmd_reboot:
     mov si, msg_reboot
     call print_str
-    ; [终极修复]将 0xCF9 加载到 16 位的 DX 寄存器中
+    ; 【修复】使用 16 位 DX 寄存器写入 0xCF9 端口
     mov dx, 0xCF9
     mov al, 0x06
     out dx, al
-    ; 如果失败，则停机
     cli
     hlt
     jmp .cmd_reboot
@@ -242,6 +275,7 @@ prompt      db 13, 10, 'DeePoint> ', 0
 echo_flag   db 1
 cmd_clear   db 'clear'
 cmd_help    db 'help'
+cmd_beep    db 'beep'
 cmd_echo    db 'echo '
 cmd_echo_off db 'echo off'
 cmd_echo_on  db 'echo on'
@@ -251,14 +285,16 @@ cmd_v       db 'deepoint -v'
 
 bad_msg     db 13, 10, 'Bad command or file name', 0
 newline_msg db 13, 10, 0
+msg_beep    db 13, 10, '*BEEP!*', 13, 10, 0
 
 version_msg db 13, 10, 'Copyright(C)2026 Creative Gear', 13, 10
             db 'All rights reserved', 13, 10
-            db 'V0.0.3 (- Prefix Unlocked!)', 13, 10, 0
+            db 'V0.0.3 (- Prefix & Hardware Unlocked!)', 13, 10, 0
 
 help_msg    db 13, 10, 'Available commands:', 13, 10
             db '  help          - Show this help', 13, 10
             db '  clear         - Clear the screen', 13, 10
+            db '  beep          - Emit a PC speaker beep', 13, 10
             db '  echo [text]   - Print text with newline', 13, 10
             db '  echo -n [text]- Print text without newline', 13, 10
             db '  echo off/on   - Hide/Show prompt', 13, 10

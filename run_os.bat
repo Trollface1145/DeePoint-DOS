@@ -19,13 +19,8 @@ powershell -ExecutionPolicy Bypass -File "%~dp0write_disk.ps1"
 if %errorlevel% neq 0 goto error
 
 echo.
-echo Checking image file...
-dir "%~dp0test_floppy.img"
-
-echo.
-echo Starting QEMU with Default BIOS (Floppy Mode)...
-:: 使用绝对路径挂载软盘，去掉 -bios 参数，回归海哥（SeaBIOS）
-"C:\Program Files\qemu\qemu-system-i386.exe" -drive file="%~dp0test_floppy.img",format=raw,if=floppy,index=0 -boot order=a
+echo Starting QEMU with SeaBIOS + Audio...
+"C:\Program Files\qemu\qemu-system-i386.exe" -L "C:\Program Files\qemu\share" -audiodev dsound,id=audio0 -machine pcspk-audiodev=audio0 -drive file=test_floppy.img,format=raw,if=floppy,index=0 -boot order=a
 
 echo.
 echo QEMU exited.

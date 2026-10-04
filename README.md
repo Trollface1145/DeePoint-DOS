@@ -1,6 +1,6 @@
 # DeePoint DOS
 
-![Status](https://img.shields.io/badge/Status-V0.0.1--Unlocked-brightgreen)
+![Status](https://img.shields.io/badge/Status-V0.0.3--Unlocked-brightgreen)
 ![Language](https://img.shields.io/badge/Language-x86%20Assembly-blue)
 ![License](https://img.shields.io/badge/License-MIT-orange)
 

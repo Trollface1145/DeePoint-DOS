@@ -208,8 +208,10 @@ main_loop:
 .cmd_reboot:
     mov si, msg_reboot
     call print_str
-    mov al, 0xFE
-    out 0x64, al
+    ; 使用 PCI 复位控制寄存器 (0xCF9)
+    mov al, 0x06      ; 0x02 = 系统复位, 0x04 = 完整复位
+    out 0xCF9, al
+    ; 如果失败，则停机
     cli
     hlt
     jmp .cmd_reboot

@@ -208,9 +208,10 @@ main_loop:
 .cmd_reboot:
     mov si, msg_reboot
     call print_str
-    ; 使用 PCI 复位控制寄存器 (0xCF9)
-    mov al, 0x06      ; 0x02 = 系统复位, 0x04 = 完整复位
-    out 0xCF9, al
+    ; [终极修复]将 0xCF9 加载到 16 位的 DX 寄存器中
+    mov dx, 0xCF9
+    mov al, 0x06
+    out dx, al
     ; 如果失败，则停机
     cli
     hlt

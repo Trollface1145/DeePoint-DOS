@@ -4,26 +4,34 @@ Set-Location $dir
 $imgPath = Join-Path $dir "test_floppy.img"
 $bootPath = Join-Path $dir "boot.bin"
 $kernelPath = Join-Path $dir "kernel.bin"
+$guessPath = Join-Path $dir "guess.bin"
+$rpsPath = Join-Path $dir "rps.bin"
 
-# 创建 1.44MB 软盘镜像（如果不存在）
-if (-not (Test-Path $imgPath)) {
-    Write-Host "Creating 1.44MB floppy image..."
-    fsutil file createnew $imgPath 1474560 | Out-Null
-}
+Write-Host "Building floppy image..."
 
-$img = [System.IO.File]::OpenWrite($imgPath)
+# 创建 1.44MB 的空白字节数组（全部为 0）
+$floppy = New-Object byte[] 1474560
 
-# 写入 MBR 到偏移 0
-$boot = [System.IO.File]::ReadAllBytes($bootPath)
-$img.Seek(0, 'Begin') | Out-Null
-$img.Write($boot, 0, $boot.Length)
+# 1. 复制引导扇区到偏移 0
+$bootBytes = [System.IO.File]::ReadAllBytes($bootPath)
+[Array]::Copy($bootBytes, 0, $floppy, 0, $bootBytes.Length)
 Write-Host "MBR written to LBA 0"
 
-# 写入 Kernel 到偏移 512 (LBA 1)
-$kernel = [System.IO.File]::ReadAllBytes($kernelPath)
-$img.Seek(512, 'Begin') | Out-Null
-$img.Write($kernel, 0, $kernel.Length)
+# 2. 复制内核到偏移 512 (LBA 1)
+$kernelBytes = [System.IO.File]::ReadAllBytes($kernelPath)
+[Array]::Copy($kernelBytes, 0, $floppy, 512, $kernelBytes.Length)
 Write-Host "Kernel written to LBA 1"
 
-$img.Close()
-Write-Host "Floppy image built successfully!"
+# 3. 复制猜数字游戏到偏移 10240 (LBA 20)
+$guessBytes = [System.IO.File]::ReadAllBytes($guessPath)
+[Array]::Copy($guessBytes, 0, $floppy, 10240, $guessBytes.Length)
+Write-Host "Guess game written to LBA 20"
+
+# 4. 复制石头剪刀布到偏移 12288 (LBA 24)
+$rpsBytes = [System.IO.File]::ReadAllBytes($rpsPath)
+[Array]::Copy($rpsBytes, 0, $floppy, 12288, $rpsBytes.Length)
+Write-Host "RPS game written to LBA 24"
+
+# 5. 一次性写入磁盘
+[System.IO.File]::WriteAllBytes($imgPath, $floppy)
+Write-Host "Floppy image built successfully!" -ForegroundColor Green

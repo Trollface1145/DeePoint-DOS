@@ -12,6 +12,7 @@ cmd_clear   db 'clear'
 cmd_help    db 'help'
 cmd_guess   db 'guess'
 cmd_rps     db 'rps'
+cmd_snake   db 'snake'
 cmd_date    db 'date'
 cmd_time    db 'time'
 cmd_beep    db 'beep'
@@ -32,13 +33,14 @@ msg_ctrl_c  db '^C', 13, 10, 0
 
 version_msg db 13, 10, 'Copyright(C)2026 Creative Gear', 13, 10
             db 'All rights reserved', 13, 10
-            db 'V0.0.7 (Ctrl+C & Modular Games)', 13, 10, 0
+            db 'V0.0.9 (Snake Unlocked!)', 13, 10, 0
 
 help_msg    db 13, 10, 'Available commands:', 13, 10
             db '  help          - Show this help', 13, 10
             db '  clear         - Clear the screen', 13, 10
             db '  guess         - Play guessing game', 13, 10
             db '  rps           - Play rock paper scissors', 13, 10
+            db '  snake         - Play snake game (WASD)', 13, 10
             db '  date          - Show current date', 13, 10
             db '  time          - Show current time', 13, 10
             db '  beep          - Emit a PC speaker beep', 13, 10
@@ -57,7 +59,7 @@ msg_reboot   db 13, 10, 'Rebooting...', 13, 10, 0
 boot_drive  db 0
 buffer      times 64 db 0
 
-; ================= 函数区 =================
+; ================= 函数区（带寄存器护盾） =================
 print_char:
     push ax
     push bx
@@ -130,13 +132,11 @@ main_loop:
     test al, al
     jz .wait_key
     
-    ; 【Ctrl+C 中断检测】
-    cmp al, 0x03
+    cmp al, 0x03        ; Ctrl+C
     je .ctrl_c
-    
-    cmp al, 0x0D
+    cmp al, 0x0D        ; Enter
     je .process_cmd
-    cmp al, 0x08
+    cmp al, 0x08        ; Backspace
     je .backspace
 
     mov cx, di
@@ -230,6 +230,12 @@ main_loop:
     repe cmpsb
     je cmd_rps_handler
 
+    mov si, cmd_snake
+    mov di, buffer
+    mov cx, 5
+    repe cmpsb
+    je cmd_snake_handler
+
     mov si, cmd_date
     mov di, buffer
     mov cx, 4
@@ -266,7 +272,7 @@ main_loop:
 
 ; ============== 命令实现 ==============
 cmd_guess_handler:
-    ; 加载 LBA 20 (柱面0, 磁头1, 扇区3) 的 guess.bin 到 0x3000
+    ; 加载 LBA 20 到 0x3000
     push ds
     push es
     mov ax, 0x0000
@@ -289,7 +295,7 @@ cmd_guess_handler:
     jmp main_loop
 
 cmd_rps_handler:
-    ; 加载 LBA 24 (柱面0, 磁头1, 扇区7) 的 rps.bin 到 0x3000
+    ; 加载 LBA 24 到 0x3000
     push ds
     push es
     mov ax, 0x0000
@@ -307,6 +313,30 @@ cmd_rps_handler:
     jc .rps_load_error
     jmp 0x0000:0x3000
 .rps_load_error:
+    mov si, msg_load_error
+    call print_str
+    jmp main_loop
+
+cmd_snake_handler:
+    ; 加载 LBA 28 到 0x3000
+    ; LBA 28 = 柱面0, 磁头1, 扇区11
+    push ds
+    push es
+    mov ax, 0x0000
+    mov es, ax
+    mov bx, 0x3000
+    mov ah, 0x02
+    mov al, 8           ; 读 4 个扇区
+    mov ch, 0           ; 柱面 0
+    mov cl, 11          ; 扇区 11
+    mov dh, 1           ; 磁头 1
+    mov dl, [boot_drive]
+    int 0x13
+    pop es
+    pop ds
+    jc .snake_load_error
+    jmp 0x0000:0x3000
+.snake_load_error:
     mov si, msg_load_error
     call print_str
     jmp main_loop

@@ -6,6 +6,7 @@ $bootPath = Join-Path $dir "boot.bin"
 $kernelPath = Join-Path $dir "kernel.bin"
 $guessPath = Join-Path $dir "guess.bin"
 $rpsPath = Join-Path $dir "rps.bin"
+$snakePath = Join-Path $dir "snake.bin"
 
 Write-Host "Building floppy image..."
 
@@ -32,6 +33,11 @@ $rpsBytes = [System.IO.File]::ReadAllBytes($rpsPath)
 [Array]::Copy($rpsBytes, 0, $floppy, 12288, $rpsBytes.Length)
 Write-Host "RPS game written to LBA 24"
 
-# 5. 一次性写入磁盘
+# 5. 复制贪吃蛇到偏移 14336 (LBA 28)
+$snakeBytes = [System.IO.File]::ReadAllBytes($snakePath)
+[Array]::Copy($snakeBytes, 0, $floppy, 14336, $snakeBytes.Length)
+Write-Host "Snake game written to LBA 28"
+
+# 6. 一次性写入磁盘
 [System.IO.File]::WriteAllBytes($imgPath, $floppy)
 Write-Host "Floppy image built successfully!" -ForegroundColor Green
